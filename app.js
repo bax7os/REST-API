@@ -1,13 +1,15 @@
 const express = require('express');
 const app = express();
 const morgan = require('morgan');
-const rotas = require('./routes/produtos');
+const rota_produtos = require('./routes/produtos');
+const rota_usuarios = require('./routes/usuarios');
 const bodyParser = require('body-parser');
 
 app.use(morgan('dev'));
 app.use(bodyParser.urlencoded({ extended: false })); // apenas dados simples
 app.use(bodyParser.json());
-app.use('/produtos', rotas);
+app.use('/produtos', rota_produtos);
+app.use('/usuarios', rota_usuarios);
 
 
 // quando não encontra rota
