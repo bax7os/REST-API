@@ -4,6 +4,7 @@ const login = require('../middleware/login');
 
 const ProdutosController = require('../controllers/produtos-controller');
 
+
 router.get('/', ProdutosController.getProdutos);
 router.post('/', login.obrigatorio, ProdutosController.postProdutos);
 router.get('/:id_produto', ProdutosController.getProdutosById);
