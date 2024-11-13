@@ -5,8 +5,10 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 
 
-const rota_produtos = require('./routes/produtos');
+const rota_alunos = require('./routes/alunos');
 const rota_usuarios = require('./routes/usuarios');
+const rota_treinos = require('./routes/treinos');
+
 
 
 
@@ -14,8 +16,9 @@ app.use(morgan('dev'));
 app.use(bodyParser.urlencoded({ extended: false })); // apenas dados simples
 app.use(bodyParser.json());
 app.use(cors({origin: true, credentials: true}));
-app.use('/produtos', rota_produtos);
+app.use('/alunos', rota_alunos);
 app.use('/usuarios', rota_usuarios);
+app.use('/treinos', rota_treinos);
 
 
 // quando não encontra rota

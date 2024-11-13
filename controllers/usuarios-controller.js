@@ -41,7 +41,8 @@ exports.cadastro = (req, res, next) => {
                             [nome, email, hash],
                             (error, resultado, fields) => {
                                 conn.release();
-                                if (error) {
+                                if (error) {        if (error) { return res.status(500).send({ error: error }) }
+
                                     console.error("Erro ao inserir usuário:", error);
                                     return res.status(500).send({ error: error, response: null });
                                 }
@@ -64,41 +65,88 @@ exports.cadastro = (req, res, next) => {
     });
 };
 
-exports.login = (req, res, next) => {mysql.getConnection((error, conn) => {
-   console.log("Requisição recebida Login");
-    if (error) { return res.status(500).send({ error: error }) }
-    conn.query(
-        'SELECT * FROM usuarios WHERE email = ?;',
-        [req.body.email],
-        (error, result, fields) => {
-            conn.release();
-            if (error) { return res.status(500).send({ error: error }); }
-            if (result.length < 1) {
-                return res.status(401).send({ mensagem: 'Falha na autenticação' })
-            }
-            bcrypt.compare(req.body.senha, result[0].senha, (errBcrypt, resultBcrypt) => {
-                if(errBcrypt){
-                    return res.status(401).send({ mensagem: 'Falha na autenticação' });
+
+exports.login = (req, res, next) => {
+    console.log("Requisição recebida Login");
+    
+    const { email, senha } = req.body;
+    console.log(email, senha);
+    if (!email || !senha) {
+        return res.status(400).send({ error: "Todos os campos são obrigatórios" });
+    }
+
+    mysql.getConnection((error, conn) => {
+        if (error) {
+            console.error("Erro ao obter conexão do banco de dados:", error);
+            return res.status(500).send({ error: error });
+        }
+
+        conn.query(
+            'SELECT * FROM usuarios WHERE email = ?;',
+            [email],
+            (error, result, fields) => {
+                conn.release();
+                if (error) {
+                    console.error("Erro ao consultar usuários:", error);
+                    return res.status(500).send({ error: error });
                 }
-                if(resultBcrypt){
-                    const token = jwt.sign({
-                        id_usuario: result[0].id_usuario,
-                        nome: result[0].nome,
-                        email: result[0].email
-                    },
+                if (result.length < 1) {
+                    console.warn("Falha na autenticação: usuário não encontrado");
+                    return res.status(401).send({ mensagem: 'Falha na autenticação' });
+                }
+                bcrypt.compare(senha, result[0].senha, (errBcrypt, resultBcrypt) => {
+                    if (errBcrypt) {
+                        console.error("Erro ao comparar senhas:", errBcrypt);
+                        return res.status(401).send({ mensagem: 'Falha na autenticação' });
+                    }
+                    if (resultBcrypt) {
+                        const token = jwt.sign({
+                            id_usuario: result[0].id_usuario,
+                            nome: result[0].nome,
+                            email: result[0].email
+                        },
                         process.env.JWT_KEY,
                         {
                             expiresIn: "5d"
-                        }
-                    );
-                    return res.status(200).send({ 
-                        mensagem: 'Sucesso na autenticação',
-                        token: token
-                     });
-                }
-                return res.status(401).send({ mensagem: 'Falha na autenticação' });
-            });
-        }
-    )
+                        });
+                        console.log("Autenticação bem-sucedida:", result[0]);
+                        return res.status(200).send({ 
+                            mensagem: 'Sucesso na autenticação',
+                            token: token 
+                        });
+                    }
+                    console.warn("Falha na autenticação: senha incorreta");
+                    return res.status(401).send({ mensagem: 'Falha na autenticação' });
+                });
+            }
+        );
+    });
+};
 
-})};
+exports.getUser = (req, res, next) => {
+    console.log("Requisição recebida getUser");
+    mysql.getConnection((error, conn) => {
+        if (error) {
+            return res.status(500).send({ error: error });
+        }
+        conn.query(
+            'SELECT * FROM usuarios WHERE id_usuario = ?',
+            [req.usuario.id_usuario],
+            (error, result, fields) => {
+                conn.release();
+                if (error) {
+                    return res.status(500).send({ error: error });
+                }
+                if (result.length < 1) {
+                    return res.status(404).send({ mensagem: 'Usuário não encontrado' });
+                }
+                const user = {
+                    id_usuario: result[0].id_usuario,
+                    nome: result[0].nome,
+                    email: result[0].email
+                };
+                res.status(200).send({ user: user });
+            }
+        );
+    });
+};
